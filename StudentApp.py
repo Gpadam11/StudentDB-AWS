@@ -17,26 +17,30 @@ db_conn = connections.Connection(
     password=custompass,
     db=customdb
 )
+
 output = {}
 table = 'student'
+
 
 @app.route("/", methods=['GET', 'POST'])
 def home():
     return render_template('AddStudent.html')
 
+
 @app.route("/about", methods=['POST'])
 def about():
     return render_template('www.intellipaat.com')
+
 
 @app.route("/addstudent", methods=['POST'])
 def AddStudent():
     student_id = request.form['student_id']
     first_name = request.form['first_name']
     last_name = request.form['last_name']
-    pri_interest = request.form['pri_interest']
-    location = request.form['location']
+    gpa = request.form['gpa']
+    courses = request.form['courses']
     student_image_file = request.files['student_image_file']
-  
+
     insert_sql = "INSERT INTO student VALUES (%s, %s, %s, %s, %s)"
     cursor = db_conn.cursor()
 
@@ -44,14 +48,14 @@ def AddStudent():
         return "Please select a file"
 
     try:
-        cursor.execute(insert_sql, (student_id, first_name, last_name, pri_interest, location))
+        cursor.execute(insert_sql, (student_id, first_name, last_name, gpa, courses))
         db_conn.commit()
         student_name = "" + first_name + " " + last_name
 
-        # Upload image file to S3 #
+        # Upload image file in S3
         student_image_file_name_in_s3 = "student-id-" + str(student_id) + "_image_file"
         s3 = boto3.resource('s3')
-        
+
         try:
             print("Data inserted in MySQL RDS... uploading image to S3...")
             s3.Bucket(custombucket).put_object(Key=student_image_file_name_in_s3, Body=student_image_file)
@@ -68,9 +72,8 @@ def AddStudent():
                 custombucket,
                 student_image_file_name_in_s3)
 
-            # Save image file metadata in DynamoDB #
+            # Save image file metadata in DynamoDB
             print("Uploading to S3 success... saving metadata in DynamoDB...")
-        
             try:
                 dynamodb_client = boto3.client('dynamodb', region_name=customregion)
                 dynamodb_client.put_item(
@@ -86,39 +89,40 @@ def AddStudent():
                 )
 
             except Exception as e:
-                program_msg = "Flask could not update DynamoDB table with S3 object URL"
                 return str(e)
-        
+
         except Exception as e:
             return str(e)
 
     finally:
         cursor.close()
 
-    print("All modifications done...")
+    print("all modification done...")
     return render_template('AddStudentOutput.html', name=student_name)
+
 
 @app.route("/getstudent", methods=['GET', 'POST'])
 def GetStudent():
     return render_template("GetStudent.html")
 
-@app.route("/fetchdata", methods=['GET', 'POST'])
-def FetchData():
+
+@app.route("/fetchstudentdata", methods=['POST'])
+def FetchStudentData():
     student_id = request.form['student_id']
 
     output = {}
-    select_sql = "SELECT student_id, first_name, last_name, pri_interest, location FROM student WHERE student_id=%s"
+    select_sql = "SELECT student_id, first_name, last_name, gpa, courses from student where student_id=%s"
     cursor = db_conn.cursor()
 
     try:
-        cursor.execute(select_sql, (student_id))
+        cursor.execute(select_sql, (student_id,))
         result = cursor.fetchone()
 
         output["student_id"] = result[0]
         output["first_name"] = result[1]
         output["last_name"] = result[2]
-        output["primary_interest"] = result[3]
-        output["location"] = result[4]
+        output["gpa"] = result[3]
+        output["courses"] = result[4]
 
         dynamodb_client = boto3.client('dynamodb', region_name=customregion)
         try:
@@ -133,8 +137,7 @@ def FetchData():
             image_url = response['Item']['image_url']['S']
 
         except Exception as e:
-            program_msg = "Flask could not update DynamoDB table with S3 object URL"
-            return render_template('addstudenterror.html', errmsg1=program_msg, errmsg2=e)
+            return str(e)
 
     except Exception as e:
         print(e)
@@ -143,8 +146,9 @@ def FetchData():
         cursor.close()
 
     return render_template("GetStudentOutput.html", id=output["student_id"], fname=output["first_name"],
-                           lname=output["last_name"], interest=output["primary_interest"], location=output["location"],
+                           lname=output["last_name"], gpa=output["gpa"], courses=output["courses"],
                            image_url=image_url)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80, debug=True)
