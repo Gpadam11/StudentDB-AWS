@@ -3,6 +3,7 @@ from pymysql import connections
 import os
 import boto3
 from config import *
+import paramiko
 
 app = Flask(__name__)
 
@@ -89,6 +90,15 @@ def AddStudent():
         except Exception as e:
             return str(e)
 
+        # Use Paramiko to execute a command on a remote server
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect("remote_server.example.com", 22, "remote_username", "remote_password")
+        stdin, stdout, stderr = ssh.exec_command("ls -l")
+        output = stdout.read().decode("utf-8")
+        print(output)
+        ssh.close()
+
     finally:
         cursor.close()
 
@@ -137,14 +147,4 @@ def FetchStudentData():
 
     return render_template(
         "GetStudentOutput.html",
-        id=output["student_id"],
-        fname=output["first_name"],
-        lname=output["last_name"],
-        gpa=output["gpa"],
-        courses=output["courses"],
-        image_url=image_url,
     )
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
