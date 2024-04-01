@@ -10,14 +10,14 @@ sudo apt-get install python3-pymysql
 sudo apt-get install python3-boto3
 
 # for running application
-sudo python3 Empapp.py
+sudo python StudentApp.py
 
 #for connecting to MYSQL
-mysql --host <RDS endpoint> -u <username> -p 
-<enterpassword>
+mysql --host <RDS endpoint> -u <username(gpag)> -p 
+<enterpassword(gpaj3344)>
 
 #connect to DB
-use <db name>;
+use <db name(student)>;
 
 #Creating table
 create table employee(
