@@ -72,25 +72,6 @@ def AddStudent():
                 custombucket,
                 student_image_file_name_in_s3)
 
-            # Save image file metadata in DynamoDB
-            print("Uploading to S3 success... saving metadata in DynamoDB...")
-            try:
-                dynamodb_client = boto3.client('dynamodb', region_name=customregion)
-                dynamodb_client.put_item(
-                    TableName=customtable,
-                    Item={
-                        'studentid': {
-                            'N': student_id
-                        },
-                        'image_url': {
-                            'S': object_url
-                        }
-                    }
-                )
-
-            except Exception as e:
-                return str(e)
-
         except Exception as e:
             return str(e)
 
@@ -124,23 +105,26 @@ def FetchStudentData():
         output["gpa"] = result[3]
         output["courses"] = result[4]
 
-        dynamodb_client = boto3.client('dynamodb', region_name=customregion)
-        try:
-            response = dynamodb_client.get_item(
-                TableName=customtable,
-                Key={
-                    'studentid': {
-                        'N': str(student_id)
-                    }
-                }
-            )
-            image_url = response['Item']['image_url']['S']
+        # Remove DynamoDB related code
+        # Dynamically build image URL instead
+        student_image_file_name_in_s3 = "student-id-" + str(student_id) + "_image_file"
+        bucket_location = boto3.client('s3').get_bucket_location(Bucket=custombucket)
+        s3_location = (bucket_location['LocationConstraint'])
 
-        except Exception as e:
-            return str(e)
+        if s3_location is None:
+            s3_location = ''
+        else:
+            s3_location = '-' + s3_location
+
+        image_url = "https://s3{0}.amazonaws.com/{1}/{2}".format(
+            s3_location,
+            custombucket,
+            student_image_file_name_in_s3
+        )
 
     except Exception as e:
         print(e)
+        return str(e)
 
     finally:
         cursor.close()
