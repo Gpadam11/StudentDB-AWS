@@ -14,18 +14,19 @@ sudo python StudentApp.py
 
 #for connecting to MYSQL
 mysql --host <RDS endpoint> -u <username(gpag)> -p 
-<enterpassword(gpaj3344)>
+<enterpassword(*******)>
 
 #connect to DB
 use <db name(student)>;
 
 #Creating table
-create table employee(
-emp_id varchar(20),
-first_name varchar(20),
-last_name varchar(20),
-pri_skill varchar(20),
-location varchar(20));
+CREATE TABLE students (
+    student_id INT,
+    first_name VARCHAR(20),
+    last_name VARCHAR(20),
+    gpa DECIMAL(4, 2),
+    courses_enrolled VARCHAR(50)
+);
 
 #Type exit to go out of this terminal.
 
